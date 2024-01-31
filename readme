@@ -2,6 +2,7 @@
 
 # Initial configuration
 host=$(hostname)
+short_host=$(echo $host | cut -d'.' -f1)
 ssl="true"
 protocol=$([ "$ssl" == "true" ] && echo "https" || echo "http")
 url="api/v2/ping"
@@ -19,7 +20,7 @@ if [ "$status_code" -eq 200 ]; then
 
   # Extract the version and active node from the JSON
   version=$(echo "$response" | jq -r '.version')
-  active_node=$(echo "$response" | jq -r '.active_node')
+  active_node=$(echo "$response" | jq -r '.active_node' | cut -d'.' -f1)
   
   # Parse each instance and verify
   echo "$response" | jq -c '.instances[]' | while read -r instance; do

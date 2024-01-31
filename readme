@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Configuración inicial
+host=$(hostname)
+ssl="true"
+protocol=$([ "$ssl" == "true" ] && echo "https" || echo "http")
+url="api/v2/ping"
+uri="${protocol}://${host}/${url}"
+
+# Hacer la solicitud a la API
+response=$(curl -k -s "$uri")
+
+# Revisar si la respuesta fue satisfactoria
+if echo "$response" | grep -q '"ha": true'; then
+  echo "Ansible Tower es accesible."
+  
+  # Extraer la versión y el nodo activo del JSON
+  version=$(echo "$response" | jq -r '.version')
+  active_node=$(echo "$response" | jq -r '.active_node')
+  
+  # Analizar cada instancia y verificar
+  echo "$response" | jq -c '.instances[]' | while read -r instance; do
+    node=$(echo "$instance" | jq -r '.node')
+    node_version=$(echo "$instance" | jq -r '.version')
+    node_capacity=$(echo "$instance" | jq -r '.capacity')
+    node_heartbeat=$(echo "$instance" | jq -r '.heartbeat')
+    
+    if [ "$node" == "$active_node" ] && [ "$node_version" == "$version" ]; then
+      echo "Coincidencia encontrada en el nodo $node con capacidad $node_capacity y su latido fue a las $node_heartbeat."
+    else
+      echo "Nodo $node con ERROR: capacidad $node_capacity y su latido fue a las $node_heartbeat."
+    fi
+  done
+else
+  echo "Ansible Tower no es accesible."
+fi

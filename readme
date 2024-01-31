@@ -7,13 +7,16 @@ protocol=$([ "$ssl" == "true" ] && echo "https" || echo "http")
 url="api/v2/ping"
 uri="${protocol}://${host}/${url}"
 
-# Hacer la solicitud a la API
-response=$(curl -k -s "$uri")
+# Hacer la solicitud a la API y obtener el código de estado
+status_code=$(curl -k -o /dev/null -s -w "%{http_code}" "$uri")
 
 # Revisar si la respuesta fue satisfactoria
-if echo "$response" | grep -q '"ha": true'; then
+if [ "$status_code" -eq 200 ]; then
   echo "Ansible Tower es accesible."
-  
+
+  # Vuelve a hacer la solicitud para obtener el cuerpo de la respuesta
+  response=$(curl -k -s "$uri")
+
   # Extraer la versión y el nodo activo del JSON
   version=$(echo "$response" | jq -r '.version')
   active_node=$(echo "$response" | jq -r '.active_node')
@@ -32,5 +35,5 @@ if echo "$response" | grep -q '"ha": true'; then
     fi
   done
 else
-  echo "Ansible Tower no es accesible."
+  echo "Ansible Tower no es accesible. Estado: $status_code"
 fi
